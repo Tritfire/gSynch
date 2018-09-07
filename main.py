@@ -2,6 +2,7 @@ import sys
 import os
 import requests
 import shutil
+import stat
 import json
 from git import Repo
 
@@ -14,6 +15,13 @@ def getArgs():
 
 	return arguments
 
+#	removeReadOnly
+#
+#	Prevent shutil.rmtree from "Access Denied" error, by removing file read-only property
+def removeReadOnly(func, path, excinfo):
+	os.chmod(path, stat.S_IWRITE)
+	func(path)
+
 #	checkFolder
 #
 #	Check if the <current_dir>/tmp directory exists or not
@@ -21,7 +29,7 @@ def getArgs():
 def checkFolder(tmp):
 	if os.path.isdir(tmp):
 		print("WARNING : /tmp file exists, deleting it.")
-		shutil.rmtree(tmp)
+		shutil.rmtree(tmp, onerror=removeReadOnly)
 		print("Done !")
 	else:
 		print("Everything is correct with the directory.")
@@ -74,7 +82,7 @@ def workshopDownload(item_id, path):
 	if not os.path.exists(ws_path):
 		os.makedirs(ws_path)
 
-	with open(ws_path + filename, 'wb') as f:
+	with open(ws_path + filename + ".gma", 'wb') as f:
 		gma_file.raw.decode_content = True
 		shutil.copyfileobj(gma_file.raw, f)
 
@@ -95,8 +103,13 @@ def Downloads():
 	# Now the repo is cloned, we can download workshop files
 
 	error = workshopDownload(1308262997, tmp)
-
 	if not error:
 		return
 
-Downloads()
+	print("All files are downloaded in the temporary directory (<__file_directory__/tmp).")
+
+#	extractWorkshop
+#
+#	Extract the files contained in the .gma archive
+def extractWorkshop()
+	# todo
