@@ -1,8 +1,10 @@
+# OMG that import list
 import sys
 import os
 import requests
 import shutil
 import stat
+import subprocess
 import json
 from git import Repo
 
@@ -47,9 +49,11 @@ def gitClone(git_url, path):
 #
 #	Download the .gma file using the Steam API. Learn more : https://lab.xpaw.me/steam_api_documentation.html#ISteamRemoteStorage_GetPublishedFileDetails_v1
 def workshopDownload(item_id, path):
+	print("Downloading .gma file from Steam Workshop...")
+	
 	ws_path = path + "/ws/"
 	api = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
-	r = requests.post("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", data={'itemcount' : 1, 'publishedfileids[0]': item_id})
+	r = requests.post(api, data={'itemcount' : 1, 'publishedfileids[0]': item_id})
 
 	if r.status_code != 200:
 		print("ERROR : A problem occured when trying to get download URL of .gma.")
@@ -63,6 +67,7 @@ def workshopDownload(item_id, path):
 			filename = value["publishedfileid"]
 			app_id = value['creator_app_id']
 			url = value['file_url']
+			#print(url)
 		except Exception as e:
 			print("ERROR : ", e)
 			print("We can't find the addon .gma URL, please try again.") # There's always a file ID
@@ -73,7 +78,6 @@ def workshopDownload(item_id, path):
 		print("ERROR: This is not a GMod addon, please retry.")
 		return False
 
-	print("Downloading .gma file from Steam Workshop...")
 	gma_file = requests.get(url, stream = True)
 	if gma_file.status_code != 200:
 		print("ERROR : A problem occured when downloading .gma.")
@@ -106,10 +110,13 @@ def Downloads():
 	if not error:
 		return
 
-	print("All files are downloaded in the temporary directory (<__file_directory__/tmp).")
+	print("All files are downloaded in the temporary directory (__file_directory__/tmp).")
 
 #	extractWorkshop
 #
-#	Extract the files contained in the .gma archive
-def extractWorkshop()
-	# todo
+#	Extract the files contained in the .gma archive using gmad
+def extractWorkshop():
+	# This is actually how this function will work, but I'm experiencing a problem using gmad : https://forum.facepunch.com/f/gmoddev/btonb/Problems-using-gmad-exe/1/
+	program = '<dir>'
+	arguments = ("extract -file <addon_dir>")
+	subprocess.call([program, arguments])
