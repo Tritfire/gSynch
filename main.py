@@ -6,6 +6,7 @@ import shutil
 import stat
 import subprocess
 import json
+import lzma
 from git import Repo
 
 #	getArgs
@@ -67,7 +68,7 @@ def workshopDownload(item_id, path):
 			filename = value["publishedfileid"]
 			app_id = value['creator_app_id']
 			url = value['file_url']
-			#print(url)
+			print(url)
 		except Exception as e:
 			print("ERROR : ", e)
 			print("We can't find the addon .gma URL, please try again.") # There's always a file ID
@@ -103,6 +104,9 @@ def Downloads():
 
 	checkFolder(tmp)
 
+	if len(arguments) < 1:
+		print("ERROR : You should specify a Git repositery URL.")
+		return
 	gitClone(arguments[0], tmp)
 	# Now the repo is cloned, we can download workshop files
 
@@ -115,8 +119,20 @@ def Downloads():
 #	extractWorkshop
 #
 #	Extract the files contained in the .gma archive using gmad
-def extractWorkshop():
-	# This is actually how this function will work, but I'm experiencing a problem using gmad : https://forum.facepunch.com/f/gmoddev/btonb/Problems-using-gmad-exe/1/
-	program = '<dir>'
-	arguments = ("extract -file <addon_dir>")
-	subprocess.call([program, arguments])
+def extractWorkshop(gmad_dir):
+	tmp_ws = os.path.dirname(os.path.realpath(__file__)) + "/tmp/ws/"
+	try:
+		with lzma.open(tmp_ws+ "1308262997.gma") as ws:
+			with open(tmp_ws + "1308262997.gma" + ".out", "wb+") as uncompressed:
+				uncompressed.write(ws.read())
+	except (lzma.LZMAError, EOFError) as e:
+		print("ERROR: ", e)
+
+	program = gmad_dir
+	arguments = ("extract ", "-file ", tmp_ws + "1308262997.gma" + ".out", " -out", "workshop")
+
+	subprocess.check_output([program, arguments])
+
+Downloads()
+gmad_dir = "<location>"
+extractWorkshop(gmad_dir)
