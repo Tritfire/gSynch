@@ -1,138 +1,224 @@
-# OMG that import list
-import sys
-import os
-import requests
-import shutil
-import stat
-import subprocess
-import json
-import lzma
-from git import Repo
+#~-~-~-~-~-~-~-~-~-~-~-~-~-#
+#          gSync           #
+#    Gabriel Santamaria    #
+#        Apache 2.0        #
+#~-~-~-~-~-~-~-~-~-~-~-~-~-#
 
-#	getArgs
-#
-#	Gets given arguments
-#	Return given arguments (except the filename)
-def getArgs():
-	arguments = sys.argv[1:] # Skip the first argument
+#--------------------#
+#      IMPORTS       #
+#--------------------#
+import json, requests
+import sys, os, zipfile
+import urllib.request
+import datetime
+#--------------------#
+#   CONFIGURATION    #
+#--------------------#
+steam = '' # Your Steam API key
+github = '' # Your Github API key
+gmad = '' # Your path to gmad.exe
+gmpublish = '' # Your path to gmpublish.exe
 
-	return arguments
+#------------------------------#
+#                              #
+#       HELPERS FUNCTIONS      #
+#                              #
+#------------------------------#
+#--------------------#
+#        MISC        #
+#--------------------#
+def checkTimes(steamKey, appid, fileid, githubKey, repoName):
+    return getSteamLastUpdateTime(steamKey, appid, fileid) >= getGithubLastUpdateTime(githubKey, repoName)
 
-#	removeReadOnly
-#
-#	Prevent shutil.rmtree from "Access Denied" error, by removing file read-only property
-def removeReadOnly(func, path, excinfo):
-	os.chmod(path, stat.S_IWRITE)
-	func(path)
+def isZip(ftype):
+    mimes = {
+        'application/zip', 
+        'application/octet-stream', 
+        'application/x-zip-compressed', 
+        'multipart/x-zip'
+    }
+    for v in mimes:
+        if v == ftype:
+            return True
+    return False
 
-#	checkFolder
-#
-#	Check if the <current_dir>/tmp directory exists or not
-#	Delete the /tmp folder if exists
-def checkFolder(tmp):
-	if os.path.isdir(tmp):
-		print("WARNING : /tmp file exists, deleting it.")
-		shutil.rmtree(tmp, onerror=removeReadOnly)
-		print("Done !")
-	else:
-		print("Everything is correct with the directory.")
+def unZip(path, fname):
+    if not os.path.isfile(path + '/' + fname):
+        raise Exception('A problem occurred while trying to unzip the file archive : file do not exists nor is a valid one.')
+    f = zipfile.ZipFile(path + '/' + fname, 'r')
+    f.extractall(path)
+    f.close()
 
-#	gitClone
-#
-#	Simply clone the repositery given in argument
-def gitClone(git_url, path):
-	git_path = path + "/git"
-	print("Cloning Git repositery...")
-	Repo.clone_from(git_url, git_path)
-	print("Done !")
+def createDirectory(dname):
+    if not os.path.exists(dname):
+        os.makedirs(dname)
 
-#	workshopDownload
-#
-#	Download the .gma file using the Steam API. Learn more : https://lab.xpaw.me/steam_api_documentation.html#ISteamRemoteStorage_GetPublishedFileDetails_v1
-def workshopDownload(item_id, path):
-	print("Downloading .gma file from Steam Workshop...")
-	
-	ws_path = path + "/ws/"
-	api = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
-	r = requests.post(api, data={'itemcount' : 1, 'publishedfileids[0]': item_id})
+def createEmptyFile(fname, relativeDir):
+    open(relativeDir + '/' + fname, 'w').close()
 
-	if r.status_code != 200:
-		print("ERROR : A problem occured when trying to get download URL of .gma.")
-		return False
+# TOOK & ADAPTED FROM THIS POST : https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder-in-python
+def clearDirectory(folder):
+    for file in os.listdir(folder):
+        path = os.path.join(folder, file)
+        try:
+            _, ext = os.path.splitext(path)
+            if os.path.isfile(path) and ext != '.json':
+                os.unlink(path)
+        except Exception as e:
+            print(e)
 
-	data = json.loads(r.text) # JSON to Python list
-	data = data['response']['publishedfiledetails']
-	
-	for value in data:
-		try:
-			filename = value["publishedfileid"]
-			app_id = value['creator_app_id']
-			url = value['file_url']
-			print(url)
-		except Exception as e:
-			print("ERROR : ", e)
-			print("We can't find the addon .gma URL, please try again.") # There's always a file ID
+def getBaseDirectory():
+    blacklist = {
+        'maps',
+        'backgrounds',
+        'gamemodes',
+        'materials',
+        'lua',
+        'scenes',
+        'models',
+        'scripts',
+        'particles',
+        'sound',
+        'resource'
+    }
+    i = 0
+    directories = [f.path for f in os.scandir('tmp') if f.is_dir()]
+    for p in directories:
+        if os.path.isdir(os.path.join('tmp', p)):
+            i = i + 1
+    if i > 1:
+        return 'tmp'
+    else:
+        if directories[0] in blacklist:
+            return 'tmp'
+        else:
+            return directories[0]
 
-			return False
+#--------------------#
+#     STEAM PART     #
+#--------------------#
+def getSteamLastUpdateTime(key, appid, fileid):
+    baseUrl = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
+    parameters = {
+        'key': key,
+        'appid': appid,
+        'publishedfileids[0]': fileid,
+        'itemcount': 1
+    }
+    r = requests.post(url = baseUrl, data = parameters)
+    data = json.loads(r.text)
+    try:
+        data['response']['publishedfiledetails'][0]['time_updated']
+    except NameError:
+        raise Exception('Can\'t get the latest update time of the following WS item ' + fileid)
 
-	if not app_id or app_id != 4000:
-		print("ERROR: This is not a GMod addon, please retry.")
-		return False
+    time = data['response']['publishedfiledetails'][0]['time_updated']
+    
+    return time
 
-	gma_file = requests.get(url, stream = True)
-	if gma_file.status_code != 200:
-		print("ERROR : A problem occured when downloading .gma.")
-		return False
+def createWorkshopArchive(path, basePath):
+    fullPath = os.path.dirname(os.path.realpath(__file__)) + '/' + basePath
+    status = os.system(gmad + ' create -folder ' + fullPath + ' -out ' + fullPath)
+    if status != 0:
+        raise Exception('The GMA proccess ended with an error.')
 
-	if not os.path.exists(ws_path):
-		os.makedirs(ws_path)
+def updateWorkshopItem(gmaPath, fileId, changes):
+    fullPath = os.path.dirname(os.path.realpath(__file__)) + '/' + gmaPath
+    status = os.system(gmpublish + ' update -addon "' + fullPath + '" -id "' + fileId + '" -changes "' + changes + '"')
+    if status != 0:
+        raise Exception('The GMPUBLISH proccess ended with an error.')
 
-	with open(ws_path + filename + ".gma", 'wb') as f:
-		gma_file.raw.decode_content = True
-		shutil.copyfileobj(gma_file.raw, f)
+#--------------------#
+#    GITHUB  PART    #
+#--------------------#
+def getGithubLastUpdateTime(key, repoName):
+    baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
+    r = requests.get(baseUrl)
+    data = json.loads(r.text)
 
-	print("Done !")
+    try:
+        iso = datetime.datetime.strptime(data['published_at'], "%Y-%m-%dT%H:%M:%S%z")
+    except NameError:
+        raise Exception('Can\'t fetch any attached asset to the latest release of ' + repoName)
 
-	return True
+    return iso.timestamp()
 
-#	Downloads
-#
-#	Download all required files
-def Downloads():
-	arguments = getArgs()
-	tmp = os.path.dirname(os.path.realpath(__file__)) + "/tmp"
+def getGithubReleaseData(key, repoName):
+    baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
+    r = requests.get(baseUrl)
+    data = json.loads(r.text)
 
-	checkFolder(tmp)
+    try:
+        downloadUrl = data['assets'][0]['browser_download_url']
+    except NameError:
+        raise Exception('Can\'t fetch any attached asset to the latest release of ' + repoName)
+    try:
+        data['body']
+    except NameError:
+        raise Exception('An error occurred while trying to access to the latest release body of ' + repoName)
 
-	if len(arguments) < 1:
-		print("ERROR : You should specify a Git repositery URL.")
-		return
-	gitClone(arguments[0], tmp)
-	# Now the repo is cloned, we can download workshop files
+    if not isZip(data['assets'][0]['content_type']):
+       raise Exception('The latest update asset isn\'t a valid ZIP file')
+ 
 
-	error = workshopDownload(1308262997, tmp)
-	if not error:
-		return
+    return {
+        'downloadUrl': downloadUrl,
+        'body': data['body'],
+        'name': data['assets'][0]['name'],
+        'size': data['assets'][0]['size']
+    }
 
-	print("All files are downloaded in the temporary directory (__file_directory__/tmp).")
+#------------------------------#
+#                              #
+#         MAIN FUNCTION        #
+#                              #
+#------------------------------#
+def Main():
+    appid = str(sys.argv[1]) # Steam's APPID
+    fileid = str(sys.argv[2]) # Steam's Workshop FILEID
+    repoName = str(sys.argv[3]) # Github's repositery name FORMAT : <owner/name>
 
-#	extractWorkshop
-#
-#	Extract the files contained in the .gma archive using gmad
-def extractWorkshop(gmad_dir):
-	tmp_ws = os.path.dirname(os.path.realpath(__file__)) + "/tmp/ws/"
-	try:
-		with lzma.open(tmp_ws+ "1308262997.gma") as ws:
-			with open(tmp_ws + "1308262997.gma" + ".out", "wb+") as uncompressed:
-				uncompressed.write(ws.read())
-	except (lzma.LZMAError, EOFError) as e:
-		print("ERROR: ", e)
+    if checkTimes(steam, appid, fileid, github, repoName):
+        print('Everything is up to date. Your workshop file has already been synchronized with your Github repository.')
+        return 0
+    
+    data = getGithubReleaseData(github, repoName)
 
-	program = gmad_dir
-	arguments = ("extract ", "-file ", tmp_ws + "1308262997.gma" + ".out", " -out", "workshop")
+    # Checking /tmp/ directory + creating the empty file
+    print('Preparing the download...')
+    createDirectory('tmp')
+    createEmptyFile(data['name'], 'tmp')
 
-	subprocess.check_output([program, arguments])
+    # Downloading and writing the file into the previously created empty file
+    t = datetime.datetime.now().timestamp()
+    print('Starting to download the latest release of https://github.com/' + repoName + ' ... ' + str(data['size']) + ' ...')
+    urllib.request.urlretrieve(data['downloadUrl'], 'tmp/' + data['name'])
+    print('Download finished with success. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
 
-Downloads()
-gmad_dir = "<location>"
-extractWorkshop(gmad_dir)
+    # Unzipping the downloaded file
+    t = datetime.datetime.now().timestamp()
+    print('Starting to unzip : /tmp/' + data['name'] + '...')
+    unZip('tmp', data['name'])
+    print('Uncompression finished with success. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+
+    # Clearing the useless files from the folder (like .zip, LICENCE, .gitattributes, README.md, etc...) [WE EXCLUDE .JSON FILES FROM DELETION]
+    print('Deleting useless files ...')
+    clearDirectory('tmp')
+
+    # Creating the .gma archive
+    t = datetime.datetime.now().timestamp()
+    print('Starting to create the .gma archive...')
+    baseName = getBaseDirectory()
+    createWorkshopArchive(gmad, baseName)
+    gmaName = baseName + '.gma'
+    print('The gma archive has been correctly created. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+
+    # Updating the Workshop item
+    t = datetime.datetime.now().timestamp()
+    print('Starting to update the .gma archive...')
+    updateWorkshopItem(gmaName, fileid, data['body'])
+    print('The gma archive has been correctly uploaded to the Workshop. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+
+    return 0
+
+Main()
