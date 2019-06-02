@@ -7,21 +7,46 @@
 #--------------------#
 #      IMPORTS       #
 #--------------------#
-import json
-import requests
+import json, requests
+import sys, os
+import urllib.request
 import datetime
-import sys
 #--------------------#
 #   CONFIGURATION    #
 #--------------------#
-steam = '' # Your Steam API key
-github = '' # Your Github API key
+steam = '13C34ABF0073127B1904B632B7391356' # Your Steam API key
+github = 'e932228baa42d68c35368dfa7a24fecd8a0b4095' # Your Github API key
 
 #------------------------------#
 #                              #
 #       HELPERS FUNCTIONS      #
 #                              #
 #------------------------------#
+#--------------------#
+#        MISC        #
+#--------------------#
+def checkTimes(steamKey, appid, fileid, githubKey, repoName):
+    return getSteamLastUpdateTime(steamKey, appid, fileid) >= getGithubLastUpdateTime(githubKey, repoName)
+
+def isZip(ftype):
+    mimes = {
+        'application/zip', 
+        'application/octet-stream', 
+        'application/x-zip-compressed', 
+        'multipart/x-zip'
+    }
+    for v in mimes:
+        if v == ftype:
+            return True
+    return False
+
+def createDirectory(dname):
+    if not os.path.exists(dname):
+        os.makedirs(dname)
+
+def createEmptyFile(fname, relativeDir):
+    open(relativeDir + '/' + fname, 'w').close()
+
 #--------------------#
 #     STEAM PART     #
 #--------------------#
@@ -59,7 +84,7 @@ def getGithubLastUpdateTime(key, repoName):
 
     return iso.timestamp()
 
-def getGithubReleaseText(key, repoName):
+def getGithubReleaseData(key, repoName):
     baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
     r = requests.get(baseUrl)
     data = json.loads(r.text)
@@ -73,16 +98,16 @@ def getGithubReleaseText(key, repoName):
     except NameError:
         raise Exception('An error occurred while trying to access to the latest release body of ' + repoName)
 
+    if not isZip(data['assets'][0]['content_type']):
+       raise Exception('The latest update asset isn\'t a valid ZIP file')
+ 
+
     return {
         'downloadUrl': downloadUrl,
-        'body': data['body']
+        'body': data['body'],
+        'name': data['assets'][0]['name'],
+        'size': data['assets'][0]['size']
     }
-
-#--------------------#
-#        MISC        #
-#--------------------#
-def checkTimes(steamKey, appid, fileid, githubKey, repoName):
-    return getSteamLastUpdateTime(steamKey, appid, fileid) == getGithubLastUpdateTime(githubKey, repoName)
 
 #------------------------------#
 #                              #
@@ -96,4 +121,19 @@ def Main():
 
     if checkTimes(steam, appid, fileid, github, repoName):
         print('Everything is up to date. Your workshop file has already been synchronized with your Github repository.')
-        return True
+        return 0
+    
+    data = getGithubReleaseData(github, repoName)
+
+    print('Preparing the download...')
+    createDirectory('tmp')
+    createEmptyFile(data['name'], 'tmp')
+
+    t = datetime.datetime.now().timestamp()
+    print('Starting to download the latest release of https://github.com/' + repoName + ' ... ...')
+    urllib.request.urlretrieve(data['downloadUrl'], 'tmp/' + data['name'])
+    print('Download finished with success. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+
+
+
+Main()
