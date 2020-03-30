@@ -4,18 +4,20 @@
 #        Apache 2.0        #
 #~-~-~-~-~-~-~-~-~-~-~-~-~-#
 
-import datetime
+import abc
 # Imports
+import datetime
 import json
 import os
-import requests
 import sys
 import urllib.request
 import zipfile
 
+import requests
+
 # CONFIGURATION : Configure your script here
-steam = ''  # Your Steam API key
-github = ''  # Your Github API key
+steam_key = ''  # Your Steam API key
+github_key = ''  # Your Github API key
 gmad = ''  # Your path to gmad.exe
 gmpublish = ''  # Your path to gmpublish.exe
 
@@ -23,8 +25,8 @@ gmpublish = ''  # Your path to gmpublish.exe
 class Helper:
 
     @staticmethod
-    def check_times(steam_key, app_id, file_id, github_key, repo_name):
-        return getSteamLastUpdateTime(steam_key, app_id, file_id) >= getGithubLastUpdateTime(github_key, repo_name)
+    def check_times(steam, app_id, file_id, github):
+        return steam.get_last_update(app_id, file_id) >= github.get_last_update()
 
     @staticmethod
     def is_zip(file_type):
@@ -99,28 +101,40 @@ class Helper:
                 return directories[0]
 
 
-# --------------------#
-#     STEAM PART     #
-# --------------------#
+class API(metaclass=abc.ABCMeta):
+    api_key: str = ""
 
-def getSteamLastUpdateTime(key, appid, fileid):
-    baseUrl = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
-    parameters = {
-        'key': key,
-        'appid': appid,
-        'publishedfileids[0]': fileid,
-        'itemcount': 1
-    }
-    r = requests.post(url=baseUrl, data=parameters)
-    data = json.loads(r.text)
-    try:
-        data['response']['publishedfiledetails'][0]['time_updated']
-    except NameError:
-        raise Exception('Can\'t get the latest update time of the following WS item ' + fileid)
+    def __init__(self, api_key):
+        self.api_key = api_key
 
-    time = data['response']['publishedfiledetails'][0]['time_updated']
+    @abc.abstractmethod
+    def get_last_update(self):
+        """ Gets the last update time """
+        pass
 
-    return time
+
+class Steam(API):
+
+    def __init__(self, api_key):
+        super().__init__(api_key)
+
+    def get_last_update(self, app_id, file_id):
+        base_url = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
+        parameters = {
+            'key': self.api_key,
+            'app_id': app_id,
+            'publishedfileids[0]': file_id,
+            'itemcount': 1
+        }
+        r = requests.post(url=base_url, data=parameters)
+        data = json.loads(r.text)
+        try:
+            data['response']['publishedfiledetails'][0]['time_updated']
+        except NameError:
+            raise Exception('Can\'t get the latest update time of the following WS item ' + file_id)
+
+        time = data['response']['publishedfiledetails'][0]['time_updated']
+        return time
 
 
 def createWorkshopArchive(path, basePath):
@@ -140,42 +154,54 @@ def updateWorkshopItem(gmaPath, fileId, changes):
 # --------------------#
 #    GITHUB  PART    #
 # --------------------#
-def getGithubLastUpdateTime(key, repoName):
-    baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
-    r = requests.get(baseUrl)
-    data = json.loads(r.text)
 
-    try:
-        iso = datetime.datetime.strptime(data['published_at'], "%Y-%m-%dT%H:%M:%S%z")
-    except NameError:
-        raise Exception('Can\'t fetch any attached asset to the latest release of ' + repoName)
+class Github(API):
+    repository_name: str = ""
+    base_url: str = ""
 
-    return iso.timestamp()
+    def __init__(self, api_key, repository_name):
+        super().__init__(api_key)
+        self.repository_name = repository_name
+        self.base_url = 'https://api.github.com/repos/' + self.repository_name + '/releases/latest?access_token=' + self.api_key
 
+    def get_last_update(self):
+        r = requests.get(self.base_url)
+        data = json.loads(r.text)
 
-def getGithubReleaseData(key, repoName):
-    baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
-    r = requests.get(baseUrl)
-    data = json.loads(r.text)
+        try:
+            iso = datetime.datetime.strptime(data['published_at'], "%Y-%m-%dT%H:%M:%S%z")
+        except NameError:
+            raise Exception('Can\'t fetch any attached asset to the latest release of ' + self.repository_name)
 
-    try:
-        downloadUrl = data['assets'][0]['browser_download_url']
-    except NameError:
-        raise Exception('Can\'t fetch any attached asset to the latest release of ' + repoName)
-    try:
-        data['body']
-    except NameError:
-        raise Exception('An error occurred while trying to access to the latest release body of ' + repoName)
+        return iso.timestamp()
 
-    if not isZip(data['assets'][0]['content_type']):
-        raise Exception('The latest update asset isn\'t a valid ZIP file')
+    def get_release_data(self):
+        """
+        Gets the latest release data from the Github website
+        Returns: An array containing the usefull data
 
-    return {
-        'downloadUrl': downloadUrl,
-        'body': data['body'],
-        'name': data['assets'][0]['name'],
-        'size': data['assets'][0]['size']
-    }
+        """
+        r = requests.get(self.base_url)
+        data = json.loads(r.text)
+
+        try:
+            download_url = data['assets'][0]['browser_download_url']
+        except NameError:
+            raise Exception('Can\'t fetch any attached asset to the latest release of ' + self.repository_name)
+        try:
+            data['body']
+        except NameError:
+            raise Exception('An error occurred while trying to access to the latest release of ' + self.repository_name)
+
+        if not Helper.is_zip(data['assets'][0]['content_type']):
+            raise Exception('The latest update asset isn\'t a valid ZIP file')
+
+        return {
+            'downloadUrl': download_url,
+            'body': data['body'],
+            'name': data['assets'][0]['name'],
+            'size': data['assets'][0]['size']
+        }
 
 
 # ------------------------------#
@@ -188,11 +214,11 @@ def Main():
     fileid = str(sys.argv[2])  # Steam's Workshop FILEID
     repoName = str(sys.argv[3])  # Github's repositery name FORMAT : <owner/name>
 
-    if checkTimes(steam, appid, fileid, github, repoName):
+    if checkTimes(steam_key, appid, fileid, github_key, repoName):
         print('Everything is up to date. Your workshop file has already been synchronized with your Github repository.')
         return 0
 
-    data = getGithubReleaseData(github, repoName)
+    data = getGithubReleaseData(github_key, repoName)
 
     # Checking /tmp/ directory + creating the empty file
     print('Preparing the download...')
