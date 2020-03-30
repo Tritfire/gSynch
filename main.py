@@ -4,99 +4,105 @@
 #        Apache 2.0        #
 #~-~-~-~-~-~-~-~-~-~-~-~-~-#
 
-#--------------------#
-#      IMPORTS       #
-#--------------------#
-import json, requests
-import sys, os, zipfile
-import urllib.request
 import datetime
-#--------------------#
-#   CONFIGURATION    #
-#--------------------#
-steam = '' # Your Steam API key
-github = '' # Your Github API key
-gmad = '' # Your path to gmad.exe
-gmpublish = '' # Your path to gmpublish.exe
+# Imports
+import json
+import os
+import requests
+import sys
+import urllib.request
+import zipfile
 
-#------------------------------#
-#                              #
-#       HELPERS FUNCTIONS      #
-#                              #
-#------------------------------#
-#--------------------#
-#        MISC        #
-#--------------------#
-def checkTimes(steamKey, appid, fileid, githubKey, repoName):
-    return getSteamLastUpdateTime(steamKey, appid, fileid) >= getGithubLastUpdateTime(githubKey, repoName)
+# CONFIGURATION : Configure your script here
+steam = ''  # Your Steam API key
+github = ''  # Your Github API key
+gmad = ''  # Your path to gmad.exe
+gmpublish = ''  # Your path to gmpublish.exe
 
-def isZip(ftype):
-    mimes = {
-        'application/zip', 
-        'application/octet-stream', 
-        'application/x-zip-compressed', 
-        'multipart/x-zip'
-    }
-    for v in mimes:
-        if v == ftype:
-            return True
-    return False
 
-def unZip(path, fname):
-    if not os.path.isfile(path + '/' + fname):
-        raise Exception('A problem occurred while trying to unzip the file archive : file do not exists nor is a valid one.')
-    f = zipfile.ZipFile(path + '/' + fname, 'r')
-    f.extractall(path)
-    f.close()
+class Helper:
 
-def createDirectory(dname):
-    if not os.path.exists(dname):
-        os.makedirs(dname)
+    @staticmethod
+    def check_times(steam_key, app_id, file_id, github_key, repo_name):
+        return getSteamLastUpdateTime(steam_key, app_id, file_id) >= getGithubLastUpdateTime(github_key, repo_name)
 
-def createEmptyFile(fname, relativeDir):
-    open(relativeDir + '/' + fname, 'w').close()
+    @staticmethod
+    def is_zip(file_type):
+        mimes = {
+            'application/zip',
+            'application/octet-stream',
+            'application/x-zip-compressed',
+            'multipart/x-zip'
+        }
+        for v in mimes:
+            if v == file_type:
+                return True
+        return False
 
-# TOOK & ADAPTED FROM THIS POST : https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder-in-python
-def clearDirectory(folder):
-    for file in os.listdir(folder):
-        path = os.path.join(folder, file)
-        try:
-            _, ext = os.path.splitext(path)
-            if os.path.isfile(path) and ext != '.json':
-                os.unlink(path)
-        except Exception as e:
-            print(e)
+    @staticmethod
+    def unzip(path, file_name):
+        if not os.path.isfile(path + '/' + file_name):
+            raise Exception(
+                'A problem occurred while trying to unzip the file archive : file do not exists nor is a valid one.')
+        f = zipfile.ZipFile(path + '/' + file_name, 'r')
+        f.extractall(path)
+        f.close()
 
-def getBaseDirectory():
-    blacklist = {
-        'maps',
-        'backgrounds',
-        'gamemodes',
-        'materials',
-        'lua',
-        'scenes',
-        'models',
-        'scripts',
-        'particles',
-        'sound',
-        'resource'
-    }
-    i = 0
-    directories = [f.path for f in os.scandir('tmp') if f.is_dir()]
-    for p in directories:
-        if os.path.isdir(os.path.join('tmp', p)):
-            i = i + 1
-    if i > 1:
-        return 'tmp'
-    else:
-        if directories[0] in blacklist:
+    @staticmethod
+    def create_directory(directory_name):
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
+
+    @staticmethod
+    def create_empty_file(file_name, relative_directory):
+        open(relative_directory + '/' + file_name, 'w').close()
+
+    # TOOK & ADAPTED FROM THIS POST :
+    # https://stackoverflow.com/questions/185936/how-to-delete-the-contents-of-a-folder-in-python
+    @staticmethod
+    def clear_directory(folder):
+        for file in os.listdir(folder):
+            path = os.path.join(folder, file)
+            try:
+                _, ext = os.path.splitext(path)
+                if os.path.isfile(path) and ext != '.json':
+                    os.unlink(path)
+            except Exception as e:
+                print(e)
+
+    @staticmethod
+    def get_base_directory():
+        blacklist = {
+            'maps',
+            'backgrounds',
+            'gamemodes',
+            'materials',
+            'lua',
+            'scenes',
+            'models',
+            'scripts',
+            'particles',
+            'sound',
+            'resource'
+        }
+        i = 0
+        directories = [f.path for f in os.scandir('tmp') if f.is_dir()]
+        for p in directories:
+            if os.path.isdir(os.path.join('tmp', p)):
+                i = i + 1
+        if i > 1:
             return 'tmp'
         else:
-            return directories[0]
+            if directories[0] in blacklist:
+                return 'tmp'
+            else:
+                return directories[0]
 
-#--------------------#
+
+# --------------------#
 #     STEAM PART     #
-#--------------------#
+# --------------------#
+
 def getSteamLastUpdateTime(key, appid, fileid):
     baseUrl = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
     parameters = {
@@ -105,7 +111,7 @@ def getSteamLastUpdateTime(key, appid, fileid):
         'publishedfileids[0]': fileid,
         'itemcount': 1
     }
-    r = requests.post(url = baseUrl, data = parameters)
+    r = requests.post(url=baseUrl, data=parameters)
     data = json.loads(r.text)
     try:
         data['response']['publishedfiledetails'][0]['time_updated']
@@ -113,8 +119,9 @@ def getSteamLastUpdateTime(key, appid, fileid):
         raise Exception('Can\'t get the latest update time of the following WS item ' + fileid)
 
     time = data['response']['publishedfiledetails'][0]['time_updated']
-    
+
     return time
+
 
 def createWorkshopArchive(path, basePath):
     fullPath = os.path.dirname(os.path.realpath(__file__)) + '/' + basePath
@@ -122,15 +129,17 @@ def createWorkshopArchive(path, basePath):
     if status != 0:
         raise Exception('The GMA proccess ended with an error.')
 
+
 def updateWorkshopItem(gmaPath, fileId, changes):
     fullPath = os.path.dirname(os.path.realpath(__file__)) + '/' + gmaPath
     status = os.system(gmpublish + ' update -addon "' + fullPath + '" -id "' + fileId + '" -changes "' + changes + '"')
     if status != 0:
         raise Exception('The GMPUBLISH proccess ended with an error.')
 
-#--------------------#
+
+# --------------------#
 #    GITHUB  PART    #
-#--------------------#
+# --------------------#
 def getGithubLastUpdateTime(key, repoName):
     baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
     r = requests.get(baseUrl)
@@ -142,6 +151,7 @@ def getGithubLastUpdateTime(key, repoName):
         raise Exception('Can\'t fetch any attached asset to the latest release of ' + repoName)
 
     return iso.timestamp()
+
 
 def getGithubReleaseData(key, repoName):
     baseUrl = 'https://api.github.com/repos/' + repoName + '/releases/latest?access_token=' + key
@@ -158,8 +168,7 @@ def getGithubReleaseData(key, repoName):
         raise Exception('An error occurred while trying to access to the latest release body of ' + repoName)
 
     if not isZip(data['assets'][0]['content_type']):
-       raise Exception('The latest update asset isn\'t a valid ZIP file')
- 
+        raise Exception('The latest update asset isn\'t a valid ZIP file')
 
     return {
         'downloadUrl': downloadUrl,
@@ -168,20 +177,21 @@ def getGithubReleaseData(key, repoName):
         'size': data['assets'][0]['size']
     }
 
-#------------------------------#
+
+# ------------------------------#
 #                              #
 #         MAIN FUNCTION        #
 #                              #
-#------------------------------#
+# ------------------------------#
 def Main():
-    appid = str(sys.argv[1]) # Steam's APPID
-    fileid = str(sys.argv[2]) # Steam's Workshop FILEID
-    repoName = str(sys.argv[3]) # Github's repositery name FORMAT : <owner/name>
+    appid = str(sys.argv[1])  # Steam's APPID
+    fileid = str(sys.argv[2])  # Steam's Workshop FILEID
+    repoName = str(sys.argv[3])  # Github's repositery name FORMAT : <owner/name>
 
     if checkTimes(steam, appid, fileid, github, repoName):
         print('Everything is up to date. Your workshop file has already been synchronized with your Github repository.')
         return 0
-    
+
     data = getGithubReleaseData(github, repoName)
 
     # Checking /tmp/ directory + creating the empty file
@@ -191,7 +201,8 @@ def Main():
 
     # Downloading and writing the file into the previously created empty file
     t = datetime.datetime.now().timestamp()
-    print('Starting to download the latest release of https://github.com/' + repoName + ' ... ' + str(data['size']) + ' ...')
+    print('Starting to download the latest release of https://github.com/' + repoName + ' ... ' + str(
+        data['size']) + ' ...')
     urllib.request.urlretrieve(data['downloadUrl'], 'tmp/' + data['name'])
     print('Download finished with success. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
 
@@ -211,14 +222,17 @@ def Main():
     baseName = getBaseDirectory()
     createWorkshopArchive(gmad, baseName)
     gmaName = baseName + '.gma'
-    print('The gma archive has been correctly created. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+    print('The gma archive has been correctly created. It took : ' + str(
+        datetime.datetime.now().timestamp() - t) + ' seconds')
 
     # Updating the Workshop item
     t = datetime.datetime.now().timestamp()
     print('Starting to update the .gma archive...')
     updateWorkshopItem(gmaName, fileid, data['body'])
-    print('The gma archive has been correctly uploaded to the Workshop. It took : ' + str(datetime.datetime.now().timestamp() - t) + ' seconds')
+    print('The gma archive has been correctly uploaded to the Workshop. It took : ' + str(
+        datetime.datetime.now().timestamp() - t) + ' seconds')
 
     return 0
+
 
 Main()
