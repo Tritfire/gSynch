@@ -38,10 +38,7 @@ def unzip(path, file_name) -> None:
     f.close()
 
 
-from api import API
-
-
-def check_times(to_update: API, reference: API):
+def check_times(to_update, reference):
     """
     Check if there is a difference between update times
     Returns:
