@@ -34,6 +34,8 @@ class Steam(API):
 
     def __init__(self, api_key, app_id, file_id):
         super().__init__(api_key)
+        self.app_id = app_id
+        self.file_id = file_id
 
     def get_last_update(self):
         base_url = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
