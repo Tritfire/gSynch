@@ -4,43 +4,28 @@
 # License : Apache 2.0
 
 # Importing Python libraries
-import os
 import sys
 import urllib.request
 
 # Importing API classes
 from api import *
+# Importing GAME classes
+from game import *
 
 # CONFIGURATION : Configure your script here
 steam_key = ''  # Your Steam API key
 github_key = ''  # Your Github API key
-gmad = ''  # Your path to gmad.exe
-gmpublish = ''  # Your path to gmpublish.exe
 
+# SUPPORTED
+# Supported games
+supported_games = {
+    'gmod': Gmod
+}
 
-def create_ws_archive(base_path) -> None:
-    """
-    Create a workshop archive (.gma file) in the path "base_path"
-    Returns:
-        None: Nothing
-    """
-    full_path = os.path.dirname(os.path.realpath(__file__)) + '/' + base_path
-    status = os.system(gmad + ' create -folder ' + full_path + ' -out ' + full_path)
-    if status != 0:
-        raise Exception('The GMA process ended with an error.')
-
-
-def update_ws_item(gma_path, file_id, changes) -> None:
-    """
-    Update a workshop item (with id "file_id" using gmpublish.exe
-    Returns:
-        None: Nothing
-    """
-    full_path = os.path.dirname(os.path.realpath(__file__)) + '/' + gma_path
-    status = os.system(
-        gmpublish + ' update -addon "' + full_path + '" -id "' + file_id + '" -changes "' + changes + '"')
-    if status != 0:
-        raise Exception('The GMPUBLISH process ended with an error.')
+# Supported hosts
+supported_hosts = {
+    'github': Github
+}
 
 
 # Main function
@@ -52,7 +37,8 @@ def main():
     file_id = str(sys.argv[2])  # Steam Workshop file ID
     repo_name = str(sys.argv[3])  # Github repository name format : <owner/name>
 
-    # Since we're just supporting Github and Steam, don't need to do any check on which to use
+    host = supported_hosts.get(user_host, helper.launch_exception)()
+
     steam = Steam(steam_key, app_id, file_id)
     github = Github(github_key, repo_name)
 

@@ -38,7 +38,7 @@ def unzip(path, file_name) -> None:
     f.close()
 
 
-def check_times(to_update, reference):
+def check_times(to_update, reference) -> bool:
     """
     Check if there is a difference between update times
     Returns:
@@ -115,3 +115,15 @@ def get_base_directory() -> str:
             return 'tmp'
         else:
             return directories[0]
+
+
+def launch_exception(message: str) -> None:
+    """
+    Launch an exception with a message "message"
+    Args:
+        message: Exception message
+
+    Returns:
+        None: Nothing
+    """
+    raise Exception(message)

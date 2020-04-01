@@ -1,7 +1,7 @@
 # File : api.py
 # Created by gabys
 # Date : 30/03/2020
-# License :
+# License : Apache 2.0
 
 import abc
 import datetime
@@ -63,7 +63,8 @@ class Github(API):
     def __init__(self, api_key, repository_name):
         super().__init__(api_key)
         self.repository_name = repository_name
-        self.base_url = 'https://api.github.com/repos/' + self.repository_name + '/releases/latest?access_token=' + self.api_key
+        self.base_url = 'https://api.github.com/repos/{0}/releases/latest?access_token={1}'.format(self.repository_name,
+                                                                                                   self.api_key)
 
     def get_last_update(self):
         r = requests.get(self.base_url)
