@@ -59,15 +59,18 @@ class Steam(API):
 class Github(API):
     repository_name: str = ""
     base_url: str = ""
+    header: dict
 
     def __init__(self, api_key, repository_name):
         super().__init__(api_key)
         self.repository_name = repository_name
-        self.base_url = 'https://api.github.com/repos/{0}/releases/latest?access_token={1}'.format(self.repository_name,
-                                                                                                   self.api_key)
+        self.base_url = f'https://api.github.com/repos/{self.repository_name}/releases/latest'
+        self.header = {
+            'Authorization': f'token {self.api_key}'
+        }
 
     def get_last_update(self):
-        r = requests.get(self.base_url)
+        r = requests.get(self.base_url, headers=self.header)
         data = json.loads(r.text)
 
         try:
@@ -85,7 +88,7 @@ class Github(API):
             list:  A list containing the useful data
 
         """
-        r = requests.get(self.base_url)
+        r = requests.get(self.base_url, headers=self.header)
         data = json.loads(r.text)
 
         try:
