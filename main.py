@@ -4,8 +4,7 @@
 # License : Apache 2.0
 
 # Importing Python libraries
-import sys
-import urllib.request
+import argparse
 
 # Importing API classes
 from api import *
@@ -14,7 +13,6 @@ from game import *
 
 # CONFIGURATION : Configure your script here
 steam_key = ''  # Your Steam API key
-github_key = ''  # Your Github API key
 
 # SUPPORTED
 # Supported games
@@ -28,17 +26,45 @@ supported_hosts = {
 }
 
 
+def get_arguments():
+    """
+    Creates a new ArgumentParser and returns the given arguments in a Namespace
+    Returns:
+        Namespace: arguments
+    """
+    parser = argparse.ArgumentParser(prog="gSynch",
+                                     description="gSynch allow you to synchronise your Git code with the Steam Workshop")
+
+    # Action group : what the user wants to do ?
+    actions = parser.add_mutually_exclusive_group(required=True)
+    actions.add_argument('--build', action="store", metavar="<executable>",
+                         help="Builds the workshop item with the given executable")
+    actions.add_argument('--update', action="store", metavar="<item>",
+                         help="Update the given workshop item to the Workshop")
+    actions.add_argument('--synch', action="store", nargs=2, metavar=("<executable>", "<item>"),
+                         help="Builds the workshop item with the given executable and push "
+                              "it to the workshop")
+    # Steam related things
+    steam = parser.add_argument_group(title="Steam Workshop file and application IDs")
+    steam.add_argument('--file', help="Workshop file unique identifier.", required=True)
+    steam.add_argument('--app', help="Steam Application unique identifier.", required=True)
+
+    parser.add_argument("--host", action="store", help="Link to your repository", required=True)
+
+    # TODO : Add an argument for directly supported games such as Garry's Mod
+
+    return parser.parse_args()
+
+
 # Main function
 def main():
-    if len(sys.argv) < 3:
-        raise Exception('Missing arguments.')
+    arguments = get_arguments()
 
-    app_id = str(sys.argv[1])  # Steam app ID
-    file_id = str(sys.argv[2])  # Steam Workshop file ID
-    repo_name = str(sys.argv[3])  # Github repository name format : <owner/name>
+    host = supported_hosts.get(arguments.host, helper.launch_exception("The specified host isn't supported"))()
 
-    host = supported_hosts.get(user_host, helper.launch_exception)()
+    # TODO : Refactor this code and make it compatible with the new classes
 
+    """    
     steam = Steam(steam_key, app_id, file_id)
     github = Github(github_key, repo_name)
 
@@ -88,6 +114,7 @@ def main():
         datetime.datetime.now().timestamp() - t) + ' seconds')
 
     return 0
+    """
 
 
 # Script entry point

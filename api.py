@@ -29,8 +29,8 @@ class API(metaclass=abc.ABCMeta):
 
 
 class Steam(API):
-    app_id: str = ""
-    file_id: str = ""
+    app_id: str
+    file_id: str
 
     def __init__(self, api_key, app_id, file_id):
         super().__init__(api_key)
@@ -57,8 +57,8 @@ class Steam(API):
 
 
 class Github(API):
-    repository_name: str = ""
-    base_url: str = ""
+    repository_name: str
+    base_url: str
     header: dict
 
     def __init__(self, api_key, repository_name):
@@ -85,7 +85,7 @@ class Github(API):
         Gets the latest release data from the Github website
 
         Returns:
-            list:  A list containing the useful data
+            dict:  A dictionary containing the useful data
 
         """
         r = requests.get(self.base_url, headers=self.header)
@@ -104,6 +104,7 @@ class Github(API):
             raise Exception('The latest update asset isn\'t a valid ZIP file')
 
         return {
+            'version': data['tag_name'],
             'downloadUrl': download_url,
             'body': data['body'],
             'name': data['assets'][0]['name'],

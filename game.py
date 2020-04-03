@@ -41,8 +41,8 @@ class GAME(metaclass=abc.ABCMeta):
 
 
 class Gmod(GAME):
-    gmad: str = ""
-    gmpublish: str = ""
+    gmad: str
+    gmpublish: str
 
     def __init__(self, app_id, gmad, gmpublish):
         super().__init__(app_id)
@@ -71,3 +71,10 @@ class Gmod(GAME):
             self.gmpublish + ' update -addon "' + full_path + '" -id "' + file_id + '" -changes "' + changes + '"')
         if status != 0:
             raise Exception('The GMPUBLISH process ended with an error.')
+
+
+class DuckGame(GAME):
+    # TODO : implement the class DuckGame
+
+    def __init__(self, app_id):
+        super().__init__(app_id)
