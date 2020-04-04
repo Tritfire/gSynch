@@ -22,7 +22,7 @@ supported_games = {
 
 # Supported hosts
 supported_hosts = {
-    'github': Github
+    'github.com': Github
 }
 
 
@@ -49,20 +49,43 @@ def get_arguments():
     steam.add_argument('--file', help="Workshop file unique identifier.", required=True)
     steam.add_argument('--app', help="Steam Application unique identifier.", required=True)
 
-    parser.add_argument("--host", action="store", help="Link to your repository", required=True)
+    # Git host or Git Repository
+    git = parser.add_mutually_exclusive_group(required=True)
+    git.add_argument("--host", action="store", help="Link to your repository")
+    git.add_argument("--repo", action="store", help="Repository link")
 
     # TODO : Add an argument for directly supported games such as Garry's Mod
 
     return parser.parse_args()
 
 
+def build(executable: str) -> None:
+    pass
+    # TODO : Implement the build() function
+
+
+def update() -> None:
+    pass
+    # TODO : Implement the update() function
+
+
+def synch() -> None:
+    pass
+    # TODO : Implement the synch() function
+
+
 # Main function
 def main():
     arguments = get_arguments()
 
-    host = supported_hosts.get(arguments.host, helper.launch_exception("The specified host isn't supported"))()
+    host = supported_hosts.get(helper.parse_host(arguments.host))  # TODO : Catch exception when host isn't supported
 
-    # TODO : Refactor this code and make it compatible with the new classes
+    if arguments.build:
+        build(arguments.build)
+    elif arguments.update:
+        update()
+    elif arguments.synch:
+        synch()
 
     """    
     steam = Steam(steam_key, app_id, file_id)

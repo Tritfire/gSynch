@@ -3,7 +3,9 @@
 # Date : 30/03/2020
 # License : Apache 2.0
 import os
+import re
 import zipfile
+from typing import Optional
 
 
 def is_zip(file_type) -> bool:
@@ -127,3 +129,20 @@ def launch_exception(message: str) -> None:
         None: Nothing
     """
     raise Exception(message)
+
+
+def parse_host(link: str) -> Optional[str]:
+    """
+    Parse the host name in a given link
+    Args:
+        link: Link to a website
+
+    Returns:
+        str: the host name
+    """
+    pattern = re.compile("^http[s]?://([a-z0-9]*\.[a-z]*)[/]?[a-zA-z0-9]*?$")
+    matches = pattern.match(link)
+    if matches:
+        return matches.group(1)  # it's the only possible group
+    else:
+        return None
