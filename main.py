@@ -36,6 +36,7 @@ def get_arguments():
                                      description="gSynch allow you to synchronise your Git code with the Steam Workshop")
 
     # Action group : what the user wants to do ?
+    # TODO : Add a new parameter to --host to get the api key of the user
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument('--build', action="store", metavar="<executable>",
                          help="Builds the workshop item with the given executable")
@@ -78,7 +79,14 @@ def synch() -> None:
 def main():
     arguments = get_arguments()
 
-    host = supported_hosts.get(helper.parse_host(arguments.host))  # TODO : Catch exception when host isn't supported
+    if arguments.host:
+        try:  # Handling host name
+            host = supported_hosts[helper.parse_host(arguments.host)]
+        except Exception as e:
+            print(f"An internal error occurred. Error message : {e} \nHost {helper.parse_host(arguments.host)} is "
+                  f"certainly not supported by gSynch.")
+    elif arguments.repo:
+        pass  # TODO : implement the repository cloning
 
     if arguments.build:
         build(arguments.build)
