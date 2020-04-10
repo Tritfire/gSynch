@@ -4,7 +4,10 @@
 # License : Apache 2.0
 
 import abc
+import datetime
 import os
+
+from . import helpers
 
 
 class GAME(metaclass=abc.ABCMeta):
@@ -55,10 +58,16 @@ class Gmod(GAME):
         Returns:
             None: Nothing
         """
+        t = datetime.datetime.now().timestamp()
+        print('Starting to create the .gma archive...')
+        base_name = helpers.gmod_get_base_directory(base_path)
         full_path = os.path.dirname(os.path.realpath(__file__)) + '/' + base_path
         status = os.system(self.gmad + ' create -folder ' + full_path + ' -out ' + full_path)
         if status != 0:
             raise Exception('The GMA process ended with an error.')
+        gma_name = base_name + '.gma'
+        print('The .gma archive has been correctly created. It took : ' + str(
+            datetime.datetime.now().timestamp() - t) + ' seconds')
 
     def update_ws_item(self, file_id, changes) -> None:
         """

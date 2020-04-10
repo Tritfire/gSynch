@@ -1,15 +1,14 @@
-# File : main.py
+# File : __main__.py
 # Created by gabys
-# Date : 7/09/2018
+# Date : 10/04/2020
 # License : Apache 2.0
 
-# Importing Python libraries
 import argparse
+import os
 
-# Importing API classes
-from api import *
-# Importing GAME classes
-from game import *
+from gsynch import helper
+from gsynch.api.api import Github
+from gsynch.game.game import Gmod
 
 # CONFIGURATION : Configure your script here
 steam_key = ''  # Your Steam API key
@@ -52,18 +51,20 @@ def get_arguments():
 
     # Git host or Git Repository
     git = parser.add_mutually_exclusive_group(required=True)
-    git.add_argument("--host", action="store", help="Link to your repository")
+    git.add_argument("--host", action="store", nargs=2, metavar="<repository link> <api_key>", help="Link an API key "
+                                                                                                    "to your repository")
     git.add_argument("--repo", action="store", help="Repository link")
 
-    # TODO : Add an argument for directly supported games such as Garry's Mod
+    game = parser.add_mutually_exclusive_group(required=False)
+    game.add_argument("--gmod", action="store_true", help="Synchronise a Garry's Mod addon")
 
     return parser.parse_args()
 
 
 def build(executable: str) -> None:
-    pass
-    # TODO : Implement the build() function
-
+    if not os.path.isfile(executable):
+        raise Exception(f"Can't find {executable}. Be sure that the path is correct and that it's a file...")
+    
 
 def update() -> None:
     pass
@@ -95,7 +96,7 @@ def main():
     elif arguments.synch:
         synch()
 
-    """    
+    """
     steam = Steam(steam_key, app_id, file_id)
     github = Github(github_key, repo_name)
 
@@ -148,6 +149,5 @@ def main():
     """
 
 
-# Script entry point
 if __name__ == '__main__':
     main()

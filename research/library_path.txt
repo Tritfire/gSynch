@@ -1,0 +1,18 @@
+home/<user_name> :
+    Found in ./steamapps/libraryfolders.vdf
+    Found in ./config/htmlcache/Session Storage/LOG.old
+    Found in ./config/htmlcache/Session Storage/LOG
+    Found in ./config/htmlcache/LOG.old
+    Found in ./config/htmlcache/LOG
+    Found in ./config/htmlcache/Local Storage/leveldb/LOG.old
+    Found in ./config/htmlcache/Local Storage/leveldb/LOG
+    Found in ./config/config.vdf
+    Found in ./logs/shader_log.txt
+    Found in ./logs/configstore_log.txt
+    Found in ./logs/bootstrap_log.txt
+    Found in ./logs/content_log.txt
+    Found in ./logs/workshop_log.txt
+    Found in ./logs/appinfo_log.txt
+
+libraryfolders.vdf -> custom library folders
+config.vdf -> global steam client configuration

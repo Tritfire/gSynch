@@ -10,10 +10,11 @@ from git import GitCommandError
 class GitHelper:
     repository: git.Repo
 
-    def __init__(self):
-        self.repository = git.Repo()
+    def __init__(self, repo_path: str):
+        self.repository = git.Repo(repo_path)
 
-    def clone(self, link: str, path: str, branch: str = "master") -> bool:
+    @staticmethod
+    def clone(link: str, path: str, branch: str = "master") -> bool:
         """
         Clone a repository from link and put it in path
         Args:
@@ -25,9 +26,19 @@ class GitHelper:
             bool: Whether or not the cloning has been done successfully
         """
         try:
-            self.repository.clone_from(link, path, branch=branch)
+            git.Repo.clone_from(link, path, branch=branch)
         except GitCommandError as e:
             print(f"An error occurred while trying to clone {link}. Error: {e}")
             return False
 
         return True
+
+    def get_last_commit_time(self):
+        """
+        Get the latest commit time
+        Returns:
+            int: Last commit datetime since EPOCH
+        """
+        head = self.repository.head.commit
+
+        return head.committed_datetime
