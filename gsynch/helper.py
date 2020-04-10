@@ -86,39 +86,6 @@ def clear_directory(folder) -> None:
             print(e)
 
 
-def get_base_directory() -> str:
-    """
-    Gets the base directory of the add-on we work on
-    Returns:
-        str: Returns the base directory of the add-on
-    """
-    blacklist = {
-        'maps',
-        'backgrounds',
-        'gamemodes',
-        'materials',
-        'lua',
-        'scenes',
-        'models',
-        'scripts',
-        'particles',
-        'sound',
-        'resource'
-    }
-    i = 0
-    directories = [f.path for f in os.scandir('tmp') if f.is_dir()]
-    for p in directories:
-        if os.path.isdir(os.path.join('tmp', p)):
-            i = i + 1
-    if i > 1:
-        return 'tmp'
-    else:
-        if directories[0] in blacklist:
-            return 'tmp'
-        else:
-            return directories[0]
-
-
 def launch_exception(message: str) -> None:
     """
     Launch an exception with a message "message"

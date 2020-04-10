@@ -9,7 +9,7 @@ import json
 
 import requests
 
-import helper as helper
+from gsynch import helper as helper
 
 
 class API(metaclass=abc.ABCMeta):
