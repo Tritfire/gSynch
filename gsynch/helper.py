@@ -113,3 +113,18 @@ def parse_host(link: str) -> Optional[str]:
         return matches.group(1)  # it's the only possible group
     else:
         return None
+
+
+def replace(string: str, args: dict) -> str:
+    """
+    Replaces the args in brackets by theirs value defined in args
+    Args:
+        string: string containing all the params
+
+    Returns:
+        str: the new params string with {var} replaces by var
+    """
+    for k in args:
+        string = re.sub('{' + k + '}', args[k], string)
+
+    return string

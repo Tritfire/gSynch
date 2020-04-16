@@ -1,4 +1,4 @@
-# File : git_helper.py
+# File : git.py
 # Created by gabys
 # Date : 05/04/2020
 # License : Apache 2.0
@@ -7,7 +7,7 @@ import git
 from git import GitCommandError
 
 
-class GitHelper:
+class Git:
     repository: git.Repo
 
     def __init__(self, repo_path: str):
@@ -29,7 +29,7 @@ class GitHelper:
             git.Repo.clone_from(link, path, branch=branch)
         except GitCommandError as e:
             print(f"An error occurred while trying to clone {link}. Error: {e}")
-            return False
+            raise e
 
         return True
 

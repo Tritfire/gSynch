@@ -5,12 +5,15 @@
 
 import argparse
 import os
+import shlex
+import subprocess
 
 from gsynch import helper
+# CONFIGURATION : Configure your script here
 from gsynch.api.api import Github
 from gsynch.game.game import Gmod
+from gsynch.git.git import Git
 
-# CONFIGURATION : Configure your script here
 steam_key = ''  # Your Steam API key
 
 # SUPPORTED
@@ -37,7 +40,7 @@ def get_arguments():
     # Action group : what the user wants to do ?
     # TODO : Add a new parameter to --host to get the api key of the user
     actions = parser.add_mutually_exclusive_group(required=True)
-    actions.add_argument('--build', action="store", metavar="<executable>",
+    actions.add_argument('--build', action="store", nargs=2, metavar=("<executable>", "<args>"),
                          help="Builds the workshop item with the given executable")
     actions.add_argument('--update', action="store", metavar="<item>",
                          help="Update the given workshop item to the Workshop")
@@ -61,10 +64,29 @@ def get_arguments():
     return parser.parse_args()
 
 
-def build(executable: str) -> None:
+def build(executable: str, arguments: str, path: str) -> None:
+    """
+    Executes a build program and passing arguments to it.
+
+    Args:
+        executable: program to execute
+        arguments: arguments to pass to this program
+        path: path of the item to build
+
+    Returns:
+        Nothing
+    """
     if not os.path.isfile(executable):
         raise Exception(f"Can't find {executable}. Be sure that the path is correct and that it's a file...")
-    
+
+    arguments = shlex.split(helper.replace(arguments, {'item_path': path}))
+    process = subprocess.Popen(arguments)  # launch the build
+    output, err = process.communicate()
+    if not err:
+        print(output)
+    else:
+        print(err)
+
 
 def update() -> None:
     pass
@@ -87,10 +109,15 @@ def main():
             print(f"An internal error occurred. Error message : {e} \nHost {helper.parse_host(arguments.host)} is "
                   f"certainly not supported by gSynch.")
     elif arguments.repo:
-        pass  # TODO : implement the repository cloning
+        try:
+            Git.clone(arguments.repo, 'git')
+        except Exception as e:
+            print(f'An error occurred while trying to clone your repo {arguments.repo}')
+
+        git = Git('git')  # we create a new Git object on the cloned repository
 
     if arguments.build:
-        build(arguments.build)
+        build(arguments.build[0], arguments.build[1])
     elif arguments.update:
         update()
     elif arguments.synch:
