@@ -3,11 +3,12 @@
 # Date : 10/04/2020
 # License : Apache 2.0
 import os
+import subprocess
 import sys
 # steamfiles library, made by @leovp https://github.com/leovp/steamfiles
 from steamfiles import acf
 
-if not os.name == "posix":
+if os.name != "posix":
     import winreg  # assure portability
 
 
@@ -23,7 +24,7 @@ class Steam:
     games_path: list
 
     def __init__(self, steam_path=""):
-        if not os.name == "posix":
+        if os.name != "posix":
             try:
                 key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Valve\\Steams")
             except FileNotFoundError:
@@ -34,7 +35,8 @@ class Steam:
                     raise e
             self.steam_path = winreg.QueryValueEx(key, "InstallPath")[0]
         else:
-            self.steam_path = steam_path
+            whereis = subprocess.run(['whereis', 'steam'], stdout=subprocess.PIPE)
+            self.steam_path = whereis.stdout.decode('utf-8')[7:]  # we get rid of "steam: " (which is 7 char long)
         self.games_path = [
             self.steam_path + "\\steamapps"
         ]

@@ -120,6 +120,7 @@ def replace(string: str, args: dict) -> str:
     Replaces the args in brackets by theirs value defined in args
     Args:
         string: string containing all the params
+        args: Arguments to replace
 
     Returns:
         str: the new params string with {var} replaces by var
