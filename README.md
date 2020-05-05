@@ -2,7 +2,7 @@
 gSynch allows you to synchronise your Git repository with your Steam Workshop publication in few clicks.
 
 ## Development state : <span class="badge badge-danger" color="red !important">high</span>
-**gSynch** is currently in a hight development state which means that it will receive tons of new updates very often. To follow the gSynch development, please, refer to the [development](https://github.com/Gabyfle/gSynch/tree/development) branch
+**gSynch** is currently in a hight development state which means that it will receive tons of new updates very often. To follow the gSynch development, you can watch this repository or star it!
 
 
 ## Information
