@@ -1,0 +1,76 @@
+The "libraryfolders.vdf" file has pretty much the same structure than a common .acf file
+
+Example of a libraryfolders.vdf :
+
+"LibraryFolders"
+{
+	"TimeNextStatsReport"		"1586939491"
+	"ContentStatsID"		"8945730005180647763"
+	"1"		"/home/gabyfle/Downloads/SteamLibrary2"
+	"2"		"/home/gabyfle/Downloads/SteamLibrary"
+}
+
+Example of a .acf file :
+
+"AppState"
+{
+	"appid"		"91200"
+	"Universe"		"1"
+	"name"		"Anomaly Warzone Earth"
+	"StateFlags"		"4"
+	"installdir"		"Anomaly Warzone Earth"
+	"LastUpdated"		"1586816687"
+	"UpdateResult"		"0"
+	"SizeOnDisk"		"441537252"
+	"buildid"		"282570"
+	"LastOwner"		"76561198127516196"
+	"BytesToDownload"		"434373024"
+	"BytesDownloaded"		"434373024"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"InstalledDepots"
+	{
+		"91203"
+		{
+			"manifest"		"5219770747478942757"
+		}
+	}
+	"MountedDepots"
+	{
+		"91203"		"5219770747478942757"
+	}
+	"UserConfig"
+	{
+		"language"		"english"
+	}
+}
+
+So the structure is very close (maybe it's the same) to a common .acf file, we can then try
+to use steamfiles.acf to parse libraryfolders.vdf
+
+
+After some tests, I noticed that every time I'm adding a new library folder, a new entry is added.
+Example with one library :
+
+"LibraryFolders"
+{
+	"TimeNextStatsReport"		"1586939491"
+	"ContentStatsID"		"8945730005180647763"
+	"1"		"/home/gabyfle/Downloads/SteamLibrary2"
+}
+
+And then with two :
+
+"LibraryFolders"
+{
+	"TimeNextStatsReport"		"1586939491"
+	"ContentStatsID"		"8945730005180647763"
+	"1"		"/home/gabyfle/Downloads/SteamLibrary2"
+	"2"		"/home/gabyfle/Downloads/SteamLibrary"
+}
+
+So we can guess that every time there is a new library, Steam adds a new entry "X" where X is the
+number of library added
+
+So when we parsed the file we can just get the different entries that are basically numbers

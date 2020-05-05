@@ -3,7 +3,9 @@
 # Date : 30/03/2020
 # License : Apache 2.0
 import os
+import re
 import zipfile
+from typing import Optional
 
 
 def is_zip(file_type) -> bool:
@@ -38,7 +40,7 @@ def unzip(path, file_name) -> None:
     f.close()
 
 
-def check_times(to_update, reference):
+def check_times(to_update, reference) -> bool:
     """
     Check if there is a difference between update times
     Returns:
@@ -84,34 +86,46 @@ def clear_directory(folder) -> None:
             print(e)
 
 
-def get_base_directory() -> str:
+def launch_exception(message: str) -> None:
     """
-    Gets the base directory of the add-on we work on
+    Launch an exception with a message "message"
+    Args:
+        message: Exception message
+
     Returns:
-        str: Returns the base directory of the add-on
+        None: Nothing
     """
-    blacklist = {
-        'maps',
-        'backgrounds',
-        'gamemodes',
-        'materials',
-        'lua',
-        'scenes',
-        'models',
-        'scripts',
-        'particles',
-        'sound',
-        'resource'
-    }
-    i = 0
-    directories = [f.path for f in os.scandir('tmp') if f.is_dir()]
-    for p in directories:
-        if os.path.isdir(os.path.join('tmp', p)):
-            i = i + 1
-    if i > 1:
-        return 'tmp'
+    raise Exception(message)
+
+
+def parse_host(link: str) -> Optional[str]:
+    """
+    Parse the host name in a given link
+    Args:
+        link: Link to a website
+
+    Returns:
+        str: the host name
+    """
+    pattern = re.compile("^http[s]?://([a-z0-9]*\.[a-z]*)[/]?[a-zA-z0-9]*?$")
+    matches = pattern.match(link)
+    if matches:
+        return matches.group(1)  # it's the only possible group
     else:
-        if directories[0] in blacklist:
-            return 'tmp'
-        else:
-            return directories[0]
+        return None
+
+
+def replace(string: str, args: dict) -> str:
+    """
+    Replaces the args in brackets by theirs value defined in args
+    Args:
+        string: string containing all the params
+        args: Arguments to replace
+
+    Returns:
+        str: the new params string with {var} replaces by var
+    """
+    for k in args:
+        string = re.sub('{' + k + '}', args[k], string)
+
+    return string
