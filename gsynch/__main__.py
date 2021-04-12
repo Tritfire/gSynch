@@ -129,7 +129,6 @@ def main():
 
     if helper.check_times(steam, github):
         print('Everything is up to date. Your workshop file has already been synchronized with your Github repository.')
-        print('Gaby est une grosse merde :) ')
         return 0
 
     data = github.get_release_data()
