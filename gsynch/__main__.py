@@ -111,6 +111,7 @@ def main():
     elif arguments.repo:
         try:
             Git.clone(arguments.repo, 'git')
+            print('TRITFIRE was here')
         except Exception as e:
             print(f'An error occurred while trying to clone your repo {arguments.repo}')
 
